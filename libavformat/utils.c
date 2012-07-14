@@ -2270,8 +2270,8 @@ static int has_codec_parameters(AVStream *st)
         break;
     case AVMEDIA_TYPE_VIDEO:
         val = avctx->width;
-        if (st->info->found_decoder >= 0 && avctx->pix_fmt == PIX_FMT_NONE)
-            return 0;
+        if (st->info->found_decoder >= 0 && avctx->pix_fmt == PIX_FMT_NONE) 
+			return 0;
         break;
     case AVMEDIA_TYPE_DATA:
         if(avctx->codec_id == CODEC_ID_NONE) return 1;
@@ -2279,6 +2279,7 @@ static int has_codec_parameters(AVStream *st)
         val = 1;
         break;
     }
+
     return avctx->codec_id != CODEC_ID_NONE && val != 0;
 }
 
@@ -2520,6 +2521,7 @@ int avformat_find_stream_info(AVFormatContext *ic, AVDictionary **options)
 
     count = 0;
     read_size = 0;
+	int noNextFrame = 0;
     for(;;) {
         if (ff_check_interrupt(&ic->interrupt_callback)){
             ret= AVERROR_EXIT;
@@ -2530,10 +2532,11 @@ int avformat_find_stream_info(AVFormatContext *ic, AVDictionary **options)
         /* check if one codec still needs to be handled */
         for(i=0;i<ic->nb_streams;i++) {
             int fps_analyze_framecount = 20;
-
             st = ic->streams[i];
-            if (!has_codec_parameters(st))
-                break;
+            if (!has_codec_parameters(st)) 
+				break;
+			else if ( st->codec->codec_type == AVMEDIA_TYPE_VIDEO )
+				noNextFrame++;
             /* if the timebase is coarse (like the usual millisecond precision
                of mkv), we need to analyze more frames to reliably arrive at
                the correct fps */
@@ -2603,7 +2606,8 @@ int avformat_find_stream_info(AVFormatContext *ic, AVDictionary **options)
             if (st->avg_frame_rate.num > 0)
                 t = FFMAX(t, av_rescale_q(st->codec_info_nb_frames, (AVRational){st->avg_frame_rate.den, st->avg_frame_rate.num}, AV_TIME_BASE_Q));
 
-            if (t >= ic->max_analyze_duration) {
+            if (t >= ic->max_analyze_duration && noNextFrame != 0) {
+				noNextFrame = 0;
                 av_log(ic, AV_LOG_WARNING, "max_analyze_duration %d reached at %"PRId64"\n", ic->max_analyze_duration, t);
                 break;
             }
@@ -2662,6 +2666,7 @@ int avformat_find_stream_info(AVFormatContext *ic, AVDictionary **options)
         st->codec_info_nb_frames++;
         count++;
     }
+	
 
     if (flush_codecs) {
         AVPacket empty_pkt = { 0 };

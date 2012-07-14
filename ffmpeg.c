@@ -100,7 +100,6 @@
 #define VSYNC_CFR         1
 #define VSYNC_VFR         2
 #define VSYNC_DROP        0xff
-
 #define SINKA
 
 const char program_name[] = "ffmpeg";
@@ -4302,7 +4301,8 @@ static int opt_input_file(OptionsContext *o, const char *opt, const char *filena
     /* If not enough info to get the stream parameters, we decode the
        first frames to get it. (used in mpeg case for example) */
     ret = avformat_find_stream_info(ic, opts);
-    if (ret < 0) {
+    
+	if (ret < 0) {
         av_log(NULL, AV_LOG_FATAL, "%s: could not find codec parameters\n", filename);
         avformat_close_input(&ic);
         exit_program(1);
